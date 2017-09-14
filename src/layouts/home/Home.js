@@ -15,7 +15,8 @@ class Home extends Component {
       address: '',
       saleEnd: '',
       etherAddress: '',
-      etherBalance: 0
+      etherBalance: 0,
+      transactions: []
     };
     this.getTokenBalance = this.getTokenBalance.bind(this);
     this.handleChange = this.handleChange.bind(this);
@@ -47,10 +48,18 @@ class Home extends Component {
             tokenAddress: address.toString()
           });
         });
+        var events = csIntance.allEvents({ fromBlock: 0, toBlock: 'latest' });
+        events.watch(function(error, log) {
+          var logs = that.state.transactions;
+          logs.push(log);
+          that.setState({
+            transactions: logs
+          });
+        });
+        events.get(function(error, logs) {});
       });
     }
   }
-
   componentWillReceiveProps(newProps) {
     if (newProps.web3 && !this.state.amountUpdated) {
       this.setState({ amountUpdated: true }, function() {
@@ -71,6 +80,18 @@ class Home extends Component {
     });
   }
   render() {
+    if (!this.props.web3) return <div>Loading....</div>;
+    var web3 = this.props.web3;
+    var tsList = this.state.transactions.map(function(ts, key) {
+      var purchaser = ts.args;
+      var coins = web3.fromWei(purchaser.amount, 'ether').toString();
+      return (
+        <p key={key}>
+          <a style={{ color: 'blue' }}>{purchaser.purchaser}</a> purchased{' '}
+          <strong>{coins}</strong> Jack Coin(s)
+        </p>
+      );
+    });
     return (
       <main className="container">
         <div className="pure-g">
@@ -93,6 +114,16 @@ class Home extends Component {
               <div>
                 <br />
                 You have {this.state.etherBalance} Jack Coin(s)
+              </div>
+            ) : (
+              ''
+            )}
+            <br />
+            <br />
+            {this.state.transactions.length ? (
+              <div>
+                <h2>Transaction History</h2>
+                <div>{tsList}</div>
               </div>
             ) : (
               ''
