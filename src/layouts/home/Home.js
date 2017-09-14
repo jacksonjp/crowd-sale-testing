@@ -20,9 +20,21 @@ class Home extends Component {
     };
     this.getTokenBalance = this.getTokenBalance.bind(this);
     this.handleChange = this.handleChange.bind(this);
+    this.weiRaised = this.weiRaised.bind(this);
   }
   handleChange(event) {
     this.setState({ etherAddress: event.target.value });
+  }
+  weiRaised(csIntance){
+    var that = this;
+    var web3 = this.props.web3;
+    csIntance.weiRaised.call().then(function(wei) {
+      var ether = web3.fromWei(wei, 'ether').toString();
+      that.setState({
+        amountRaised: ether,
+        address: csIntance.address
+      });
+    });
   }
   amountRaised() {
     if (this.props.web3) {
@@ -31,13 +43,7 @@ class Home extends Component {
       JackCoin.setProvider(web3.currentProvider);
       var that = this;
       jackSale.deployed().then(function(csIntance) {
-        csIntance.weiRaised.call().then(function(wei) {
-          var ether = web3.fromWei(wei, 'ether').toString();
-          that.setState({
-            amountRaised: ether,
-            address: csIntance.address
-          });
-        });
+        that.weiRaised(csIntance);
         csIntance.endTime.call().then(function(time) {
           that.setState({
             saleEnd: new Date(time.toString() * 1000).toDateString()
@@ -55,6 +61,7 @@ class Home extends Component {
           that.setState({
             transactions: logs
           });
+          that.weiRaised(csIntance);
         });
         events.get(function(error, logs) {});
       });
@@ -82,7 +89,7 @@ class Home extends Component {
   render() {
     if (!this.props.web3) return <div>Loading....</div>;
     var web3 = this.props.web3;
-    var tsList = this.state.transactions.map(function(ts, key) {
+    var tsList = this.state.transactions.slice(0).reverse().map(function(ts, key) {
       var purchaser = ts.args;
       var coins = web3.fromWei(purchaser.amount, 'ether').toString();
       return (
